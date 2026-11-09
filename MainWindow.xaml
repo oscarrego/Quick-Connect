@@ -1,0 +1,232 @@
+<Window x:Class="QuickConnect.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:QuickConnect"
+        Title="Quick Connect"
+        Icon="app.ico"
+        Width="380" Height="420"
+        MinWidth="320" MinHeight="300"
+        ResizeMode="CanResizeWithGrip"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F5F5"
+        FontFamily="Segoe UI"
+        FontSize="13">
+
+    <Window.Resources>
+        <local:InverseBoolConverter x:Key="InvBool"/>
+
+        <!-- ── Base flat button ── -->
+        <Style x:Key="FlatBtn" TargetType="Button">
+            <Setter Property="Background" Value="#E0E0E0"/>
+            <Setter Property="Foreground" Value="#212121"/>
+            <Setter Property="BorderBrush" Value="#BDBDBD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,3"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#D5D5D5"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#BDBDBD"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Device row template ── -->
+        <DataTemplate x:Key="DeviceRow" DataType="{x:Type local:BluetoothDeviceViewModel}">
+            <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Name + status -->
+                    <StackPanel VerticalAlignment="Center" Grid.Column="0">
+                        <TextBlock Text="{Binding Name}"
+                                   FontWeight="SemiBold" FontSize="13"
+                                   Foreground="#212121"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding StatusText}"
+                                   FontSize="11" Margin="0,2,0,0"
+                                   Foreground="{Binding StatusBrush}"/>
+                    </StackPanel>
+
+                    <!-- Toggle button -->
+                    <Button Grid.Column="1"
+                            Width="84"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            Content="{Binding ButtonLabel}"
+                            IsEnabled="{Binding CanToggle}"
+                            Click="OnToggleClick">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource FlatBtn}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="{x:Static local:DeviceStatus.Disconnected}">
+                                        <Setter Property="Background" Value="#1976D2"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="BorderBrush" Value="#1565C0"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="{x:Static local:DeviceStatus.Connecting}">
+                                        <Setter Property="Background" Value="#E65100"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="BorderBrush" Value="#BF360C"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="{x:Static local:DeviceStatus.Error}">
+                                        <Setter Property="Background" Value="#1976D2"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="BorderBrush" Value="#1565C0"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="{x:Static local:DeviceStatus.Connected}">
+                                        <Setter Property="Background" Value="#FAFAFA"/>
+                                        <Setter Property="Foreground" Value="#424242"/>
+                                        <Setter Property="BorderBrush" Value="#BDBDBD"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ Title bar ══════════════════════════════════════════════════ -->
+        <Border Grid.Row="0"
+                Background="#EEEEEE"
+                BorderBrush="#DEDEDE"
+                BorderThickness="0,0,0,1"
+                Padding="12,7"
+                MouseDown="OnTitleBarMouseDown">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: Bluetooth icon glyph + app name placeholder (empty — OS title bar has it) -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE702;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="15"
+                               Foreground="#1565C0"
+                               VerticalAlignment="Center"
+                               Margin="0,0,7,0"/>
+                    <TextBlock Text="Quick Connect"
+                               FontWeight="SemiBold" FontSize="13"
+                               Foreground="#212121" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Right: labelled Refresh button -->
+                <Button Grid.Column="1"
+                        Click="OnRefreshClick"
+                        IsEnabled="{Binding IsRefreshing, Converter={StaticResource InvBool}}"
+                        ToolTip="Refresh device list"
+                        Style="{StaticResource FlatBtn}"
+                        Height="24" Padding="8,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE72C;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="11"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                        <TextBlock Text="Refresh"
+                                   FontSize="12"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- ═══ BT status bar ══════════════════════════════════════════════ -->
+        <Border Grid.Row="1"
+                Background="#FAFAFA"
+                BorderBrush="#E0E0E0"
+                BorderThickness="0,0,0,1"
+                Padding="12,5">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Bluetooth:" Foreground="#757575" FontSize="12" VerticalAlignment="Center"/>
+                <Ellipse Width="7" Height="7" Margin="6,0,4,0" VerticalAlignment="Center"
+                         Fill="{Binding BluetoothStatusBrush}"/>
+                <TextBlock Text="{Binding BluetoothStatus}"
+                           Foreground="{Binding BluetoothStatusBrush}"
+                           FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <TextBlock Foreground="#9E9E9E" FontSize="11" VerticalAlignment="Center"
+                           Text=" · Refreshing…">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsRefreshing}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
+        <!-- ═══ Device list ════════════════════════════════════════════════ -->
+        <Grid Grid.Row="2" Background="#F5F5F5">
+
+            <!-- Empty state -->
+            <TextBlock Text="{Binding StatusMessage}"
+                       Foreground="#9E9E9E" FontSize="12"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" Padding="20,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Devices.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Focusable="False">
+                <ItemsControl ItemsSource="{Binding Devices}"
+                              ItemTemplate="{StaticResource DeviceRow}"
+                              Background="Transparent"
+                              Focusable="False">
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter"/>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>
