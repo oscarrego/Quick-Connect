@@ -4,47 +4,53 @@ using System.Windows.Media;
 
 namespace QuickConnect
 {
-    /// <summary>Flips a bool — used to disable the Refresh button while refreshing.</summary>
     public sealed class InverseBoolConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-            => value is bool b ? !b : (object)false;
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => value is bool b ? !b : (object)false;
+        public object Convert(object v, Type t, object p, CultureInfo c)
+            => v is bool b ? !b : (object)false;
+        public object ConvertBack(object v, Type t, object p, CultureInfo c)
+            => v is bool b ? !b : (object)false;
     }
 
-    /// <summary>Converts a hex-color string like "#2E7D32" to a Color struct for use in XAML SolidColorBrush.Color binding.</summary>
-    public sealed class HexToColorConverter : IValueConverter
+    /// <summary>Converts an int? battery level to a coloured bar string "▓▓▓▒▒" style glyph.</summary>
+    public sealed class BatteryIconConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object v, Type t, object p, CultureInfo c)
         {
-            if (value is string hex)
+            if (v is not int pct) return "\uE996"; // unknown battery glyph
+            return pct switch
             {
-                try { return (Color)ColorConverter.ConvertFromString(hex); }
-                catch { }
-            }
-            return Colors.Gray;
+                <= 10 => "\uE850", // battery 0
+                <= 20 => "\uE851", // battery 1
+                <= 40 => "\uE852", // battery 2
+                <= 60 => "\uE853", // battery 3
+                <= 80 => "\uE854", // battery 4
+                _     => "\uE83F", // battery full (Segoe MDL2)
+            };
         }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object v, Type t, object p, CultureInfo c)
             => throw new NotSupportedException();
     }
 
-    /// <summary>Converts a hex-color string to a SolidColorBrush — for Foreground bindings.</summary>
-    public sealed class StatusToColorConverter : IValueConverter
+    /// <summary>Returns red brush for low battery (≤20%), gray otherwise.</summary>
+    public sealed class BatteryColorConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object v, Type t, object p, CultureInfo c)
         {
-            if (value is string hex)
-            {
-                try { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); }
-                catch { }
-            }
-            return Brushes.Gray;
+            if (v is int pct && pct <= 20)
+                return new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
+            return new SolidColorBrush(Color.FromRgb(0x61, 0x61, 0x61));
         }
+        public object ConvertBack(object v, Type t, object p, CultureInfo c)
+            => throw new NotSupportedException();
+    }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    /// <summary>Converts a nullable int to its string or "Unavailable".</summary>
+    public sealed class NullableIntConverter : IValueConverter
+    {
+        public object Convert(object v, Type t, object p, CultureInfo c)
+            => v is int i ? $"{i}%" : "Unavailable";
+        public object ConvertBack(object v, Type t, object p, CultureInfo c)
             => throw new NotSupportedException();
     }
 }
